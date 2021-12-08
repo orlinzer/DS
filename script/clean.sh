@@ -6,13 +6,12 @@ OLD_PATH=$(pwd)
 # Change to this directory
 cd "$(dirname "$0")" || exit
 
-# Building
-echo "Building"
-if [ -d "../src/" ]; then
-  mkdir -p "../bin/"
-fi
-./build.test.sh
-./build.cli.sh
+# Clean:
+echo "Clean:"
+# ./clean.test.sh
+# ./clean.cli.sh
+./clean.obj.sh
+./clean.bin.sh
 
 # Return to the old path
 cd "$OLD_PATH" || exit

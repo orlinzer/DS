@@ -2,29 +2,22 @@
 #define AVLTREE_H
 
 #include <iostream>
-
-int MAX (int a, int b) {
-  if (a < b) {
-    return b;
-  }
-  return a;
-}
+#include <string>
 
 template <typename V>
 class AVLTree {
-  public:
+  private:
     class Node {
-      private:
       public:
         Node* left;
         Node* right;
 
         int h;
 
-        V* value;
+        V value;
 
         static void swap (Node& a, Node& b) {
-          V* tmpValue = a.value;
+          V tmpValue = a.value;
           a.value = b.value;
           b.value = tmpValue;
         }
@@ -64,26 +57,21 @@ class AVLTree {
         }
 
         void updateHight() {
-          h = MAX(getHight(left), getHight(right)) + 1;
+          int l = getHight(left);
+          int r = getHight(right);
+          if (l < r) {
+            h = r;
+          } else {
+            h = l;
+          }
+          h += 1;
         }
 
-        Node (const V& value) : h(1), left(nullptr), right(nullptr) {
-            this->value = new V(value);
-        }
+        Node (const V& value) : h(1), left(nullptr), right(nullptr), value(value) {}
 
-        ~Node () {
-          delete value;
-        }
+        ~Node () {}
 
-        Node& operator=(Node& other) {
-          if (value == other.value) { return *this; }
-
-          delete value;
-
-          value = other.value;
-
-          return *this;
-        }
+        Node& operator=(Node& other) = default;
 
         static int getHight (Node* n) {
           if (n == nullptr) { return 0; }
@@ -153,15 +141,24 @@ class AVLTree {
         friend std::ostream& operator<<(std::ostream& os, const Node& n) {
           return os << n.value;
         }
+
+        void inOrder(Callback callback) const {
+          if (left) { left.inOrder(callback); }
+          callback(value);
+          if (right) { right.inOrder(callback); }
+        }
+
+        string toString () {
+          string result = "" + value;
+          return result;
+        }
+
+        static void
     };
 
-  private:
-
-    Node* min;
-    Node* max;
     int size;
 
-    Node *root;
+    Node* root;
 
     void deleteTree(Node* pointer) {
         if(pointer == nullptr){ return; }
@@ -253,7 +250,9 @@ class AVLTree {
     }
 
   public:
-    AVLTree () : min(nullptr), max(nullptr), size(0), root(nullptr) {}
+    void (Callback*) (const V& value);
+
+    AVLTree () : size(0), root(nullptr) {}
 
     ~AVLTree () {
         deleteTree(root);
@@ -293,9 +292,19 @@ class AVLTree {
     friend std::ostream& operator<<(std::ostream& os, const AVLTree& t) {
       os << "[";
       if (t.root != nullptr) {
-        os << t.root;
+        os << *(t.root);
       }
       return os << "]";
+    }
+
+    void inOrder(Callback callback) {
+      if (root) { root->inOrder(callback); }
+    }
+
+    string toString() {
+      string result = ""
+
+      inOrder()
     }
 };
 
