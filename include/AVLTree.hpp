@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 
+using namespace std;
+
 template <typename V>
 class AVLTree {
   private:
@@ -32,7 +34,7 @@ class AVLTree {
           return getHight(left) - getHight(right);
         }
 
-        Node* getNext() const {
+        Node* getNext() {
           Node* root = this;
           Node* next = root->right;
 
@@ -119,41 +121,82 @@ class AVLTree {
         }
 
         friend bool operator==(const V& leftValue, const Node& right) {
-          return leftValue == right->value;
+          return leftValue == right.value;
         }
 
         friend bool operator<=(const V& leftValue, const Node& right) {
-          return leftValue <= right->value;
+          return leftValue <= right.value;
         }
 
         friend bool operator<(const V& leftValue, const Node& right) {
-          return leftValue < right->value;
+          return leftValue < right.value;
         }
 
         friend bool operator>=(const V& leftValue, const Node& right) {
-          return leftValue >= right->value;
+          return leftValue >= right.value;
         }
 
         friend bool operator>(const V& leftValue, const Node& right) {
-          return leftValue > right->value;
+          return leftValue > right.value;
         }
+
+        // friend std::ostream& operator<<(std::ostream& os, const Node& n) {
+        //   return os << n.value;
+        // }
 
         friend std::ostream& operator<<(std::ostream& os, const Node& n) {
-          return os << n.value;
+
+          // cout << n.value; // DBG
+
+          if (n.left != nullptr) {
+            os << *(n.left) << endl;
+          }
+
+          for (int i = 0; i < n.h; i++) {
+            os << "   ";
+          }
+          os << n.value << endl; // DBG
+
+          if (n.right != nullptr) {
+            os << *(n.right) << endl;
+          }
+
+          return os;
         }
 
-        void inOrder(Callback callback) const {
-          if (left) { left.inOrder(callback); }
-          callback(value);
-          if (right) { right.inOrder(callback); }
-        }
+        // void inOrder(Callback callback) const {
+        //   if (left) { left.inOrder(callback); }
+        //   callback(value);
+        //   if (right) { right.inOrder(callback); }
+        // }
 
-        string toString () {
-          string result = "" + value;
-          return result;
-        }
+        // string toString () {
+        //   string result = "" + value;
+        //   return result;
+        // }
 
-        static void
+
+        // string toString() {
+        //   string result = "";
+
+        //   if (left != nullptr) {
+        //     result += left->toString();
+        //   }
+
+        //   for (int i = 0; i < h; i++) {
+        //     result += "   ";
+        //   }
+        //   cout << *this; // DBG
+        //   result += "" + value;
+
+        //   if (right != nullptr) {
+        //     result += right->toString();
+        //   }
+
+        //   return result;
+        // }
+
+        // static void
     };
 
     int size;
@@ -174,7 +217,7 @@ class AVLTree {
       * @param root the old root to be rotate. the function assumes that the root exist and has a left child.
       * @return the new root. that was the left child.
       */
-    static Node* RightRotate (Node* root) {
+    static Node* rightRotate (Node* root) {
       Node* tmp = root->left;
       root->left = tmp->right;
       tmp->right = root;
@@ -191,7 +234,7 @@ class AVLTree {
       * @param root the old root to be rotate. the function assumes that the root exist and has a right child.
       * @return the new root. that was the right child.
       */
-    static Node* LeftRotate (Node* root) {
+    static Node* leftRotate (Node* root) {
       Node* tmp = root->right;
       root->right = tmp->left;
       tmp->left = root;
@@ -206,51 +249,118 @@ class AVLTree {
       * @details description
       *
       * @param root the old root of the sub-tree we want to insert to
-      * @param new_node the new node to be inserted
       * @return the new root of the sub-tree we inserted the new node to.
       */
-    static Node* insert(Node* root, Node* new_node) {
-      if (root == nullptr) { return new_node; }
+    static Node* insert(Node* root, const V& value) {
+      if (root == nullptr) { return new Node(value); }
 
       // Insert
-      if (new_node < root) {
-        root->left = insert(root->left, new_node);
+      if (value < *root) {
+        root->left = insert(root->left, value);
+
         root->updateHight();
         if (root->balance() > 1) {
-          return RightRotate(root);
+          return rightRotate(root);
         }
-      } else if (root < new_node) {
-        root->right = insert(root->right, new_node);
+      } else if (*root < value) {
+        root->right = insert(root->right, value);
         root->updateHight();
-        if (root->balance() < 1) {
-          return LeftRotate(root);
+        if (root->balance() < -1) {
+          return leftRotate(root);
         }
+
       } else {
-        // TODO: Check with your teachers what to do
+        // We fond the same key
         return nullptr;
       }
 
       return root;
     }
 
-    static Node* remove(Node* root, V& value) {
+    static Node* remove(Node* root, const V& value) {
       if (root == nullptr) { return nullptr; }
 
-      if (value < root) {
+      if (value < *root) {
         root->left = remove(root->left, value);
-      } else if (root < value) {
+      } else if (*root < value) {
         root->right = remove(root->right, value);
       } else {
         // remove
-        if (root->left != nullptr) {
+        if (root->left == nullptr ||
+            root->right == nullptr) {
+
+          Node* tmp = root->left ?
+                      root->left :
+                      root->right;
+
+          // No child case
+          if (tmp == NULL)
+          {
+              tmp = root;
+              root = nullptr;
+          } else {
+            *root = *tmp; // Copy the contents of
+                           // the non-empty child
+          }
+
+          delete tmp;
+        } else {
+          // node with two children: Get the inorder
+          // successor (smallest in the right subtree)
           Node* tmp = root->getNext();
-          Node:swap(root, tmp);
+          Node::swap(*root, *tmp);
+
+          root->right = remove(root->right, tmp->value);
+        }
+
+        // If the tree had only one node
+        // then return
+        if (root == nullptr) { return root; }
+
+        // STEP 2: UPDATE HEIGHT OF THE CURRENT NODE
+        root->updateHight();
+        // root->height = 1 + max(height(root->left),
+        //                       height(root->right));
+
+        // STEP 3: GET THE BALANCE FACTOR OF
+        // THIS NODE (to check whether this
+        // node became unbalanced)
+        // int balance = getBalance(root);
+
+        // If this node becomes unbalanced,
+        // then there are 4 cases
+
+        // Left Left Case
+        if (root->balance() > 1 &&
+          root->left->balance() >= 0) {
+          return rightRotate(root);
+        }
+
+        // Left Right Case
+        if (root->balance() > 1 &&
+          root->left->balance() < 0) {
+          root->left = leftRotate(root->left);
+          return rightRotate(root);
+        }
+
+        // Right Right Case
+        if (root->balance() < -1 &&
+          root->right->balance() <= 0) {
+          return leftRotate(root);
+        }
+
+        // Right Left Case
+        if (root->balance() < -1 &&
+          root->right->balance() > 0) {
+          root->right = rightRotate(root->right);
+          return leftRotate(root);
         }
       }
+      return root;
     }
 
   public:
-    void (Callback*) (const V& value);
+    // void (Callback*) (const V& value);
 
     AVLTree () : size(0), root(nullptr) {}
 
@@ -272,17 +382,19 @@ class AVLTree {
         return nullptr;
     }
 
-    void insert (Node* new_node) {
-      root = insert(root, new_node);
+    void insert (const V& value) {
+      root = insert(root, value);
       if (root != nullptr) { size++; }
     }
 
-    void insert (const V& value) {
-      insert(new Node(value));
-    }
+    // void insert (const V& value) {
+    //   insert(new Node(value));
+    // }
 
     void remove (const V& value) {
-      // Node* removed
+      if (root == nullptr) { return; }
+      root = remove(root, value);
+      // TODO: size--;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const AVLTree* t) {
@@ -290,22 +402,19 @@ class AVLTree {
     }
 
     friend std::ostream& operator<<(std::ostream& os, const AVLTree& t) {
-      os << "[";
+      // os << "[";
       if (t.root != nullptr) {
         os << *(t.root);
+        // os << t.root->toString();
       }
-      return os << "]";
+      // return os << "]";
+      return os;
     }
 
-    void inOrder(Callback callback) {
-      if (root) { root->inOrder(callback); }
-    }
+    // void inOrder(Callback callback) {
+    //   if (root) { root->inOrder(callback); }
+    // }
 
-    string toString() {
-      string result = ""
-
-      inOrder()
-    }
 };
 
 #endif
