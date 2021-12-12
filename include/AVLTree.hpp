@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <cmath>
 
 using namespace std;
 
@@ -71,6 +72,8 @@ class AVLTree {
         }
 
         Node (const V& value) : h(1), left(nullptr), right(nullptr), value(value) {}
+
+        Node (const Node& other) : h(1), left(nullptr), right(nullptr), value(other.value) {}
 
         ~Node () {}
 
@@ -253,6 +256,25 @@ class AVLTree {
       return tmp;
     }
 
+    static Node* min(Node* root) {
+      if (root == nullptr) { return nullptr; }
+      Node* result = root;
+      while (result->left != nullptr) {
+        result = result->left;
+      }
+      return result;
+    }
+
+    static Node* max(Node* root) {
+      if (root == nullptr) { return nullptr; }
+      Node* result = root;
+      while (result->right != nullptr) {
+        result = result->right;
+      }
+      return result;
+    }
+
+
     /**
       * @brief
       * @details description
@@ -260,7 +282,7 @@ class AVLTree {
       * @param root the old root of the sub-tree we want to insert to
       * @return the new root of the sub-tree we inserted the new node to.
       */
-    static Node* insert(Node* root, const V& value) {
+    static Node* insert (Node* root, const V& value) {
       if (root == nullptr) { return new Node(value); }
 
       // Insert
@@ -292,7 +314,7 @@ class AVLTree {
       return root;
     }
 
-    static Node* remove(Node* root, const V& value) {
+    static Node* remove (Node* root, const V& value) {
       if (root == nullptr) { return nullptr; }
 
       // Find the node, move it to be leave if needed and delete it
@@ -333,20 +355,94 @@ class AVLTree {
       return root;
     }
 
+    static Node* clone (const Node* other) {
+      if (other == nullptr) { return nullptr; }
+      Node* result = new Node(*other);
+      result->left = clone(other->left);
+      result->right = clone(other->right);
+      result->updateHight();
+      return result;
+    }
+
+    static Node* createEmpy (int size) { // O(size)
+      if (size <= 0) { return nullptr; }
+
+      Node* result = new Node();
+      size--;
+
+      int childSize = size / 2;
+
+      if (size % 2 == 0) {
+        result->left = createEmpy(childSize);
+      } else {
+        result->left = createEmpy(childSize + 1);
+      }
+
+      result->right = createEmpy(childSize);
+
+      return result;
+    }
+
+    static Node* combine (const AVLTree& a, const AVLTree& b, Node* result) {
+      if ((a.root == nullptr && b.root == nullptr) || result == nullptr) { return nullptr; }
+
+      combine(a, b, result->left);
+
+      V* minA = a.min();
+      V* minB = b.min();
+
+      V minVal;
+
+      if ((minA == nullptr) || (minB != nullptr && *minB < *minA)) {
+        minVal = *minB;
+        b.remove(minB);
+      } else {
+        minVal = *minA;
+        a.remove(minA);
+      }
+
+      result->value = minVal;
+
+      combine(a, b, result->right);
+    }
+
   public:
     // void (Callback*) (const V& value);
 
     AVLTree () : size(0), root(nullptr) {}
 
+    AVLTree (const AVLTree& other) : size(other.size) {
+      root = clone(other.root);
+    }
+
+    AVLTree (const AVLTree& a, const AVLTree& b) : size(a.size + b.size) {
+      // root = createEmpy()
+      if (a.root == nullptr) {
+        if (b.root == nullptr) {
+          root = nullptr;
+          return;
+        }
+        root = clone(b.root);
+        return;
+      }
+      if (b.root == nullptr) {
+        root = clone(a.root);
+        return;
+      }
+
+      int depth = (int)log2(size);
+
+    }
+
     ~AVLTree () {
         deleteTree(root);
     }
 
-    Node* find (V& value) {
+    V* find (V& value) {
         Node *tmp = root;
         while(tmp != nullptr) {
             if(value == *(tmp->value)) {
-                return tmp;
+                return &(tmp->value);
             }else if(value < *(tmp->value)){
                 tmp = tmp->left;
             }else {
@@ -377,6 +473,18 @@ class AVLTree {
         os << *(t.root);
       }
       return os;
+    }
+
+    V* min() {
+      Node* result = min(root);
+      if (result == nullptr) { return nullptr; }
+      return &(result->value);
+    }
+
+    V* max() {
+      Node* result = max(root);
+      if (result == nullptr) { return nullptr; }
+      return &(result->value);
     }
 
     // void inOrder(Callback callback) {
