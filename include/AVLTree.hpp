@@ -270,25 +270,19 @@ class AVLTree {
         root->right = insert(root->right, value);
       } else {
         // We fond the same key
-        return nullptr;
+        return root;
       }
 
       root->updateHight();
 
       if (root->balance() > 1) {
-        // if (value < root->left->value) {
-        //   return rightRotate(root);
-        // }
         if (value > root->left->value) {
           root->left = leftRotate(root->left);
         }
         return rightRotate(root);
       }
 
-      if (root->balance() < -1 && value < root->right->value) {
-        // if (value < root->right->value) {
-        //   return leftRotate(root);
-        // }
+      if (root->balance() < -1) {
         if (value > root->right->value) {
           root->right = rightRotate(root->right);
         }
@@ -369,8 +363,13 @@ class AVLTree {
 
     void remove (const V& value) {
       if (root == nullptr) { return; }
-      root = remove(root, value);
-      // TODO: size--;
+
+      Node* newRoot = remove(root, value);
+      if (newRoot == nullptr && size != 1) { return; }
+
+      root = newRoot;
+      size--;
+
     }
 
     friend std::ostream& operator<<(std::ostream& os, const AVLTree& t) {
