@@ -13,9 +13,7 @@ class AVLTree {
       public:
         Node* left;
         Node* right;
-
         int h;
-
         V value;
 
         static void swap (Node& a, Node& b) {
@@ -28,6 +26,11 @@ class AVLTree {
           int tmp = a->h;
           a->h = b->h;
           b->h = tmp;
+        }
+
+        static int getHight (Node* n) {
+          if (n == nullptr) { return 0; }
+          return n->h;
         }
 
         int balance () const {
@@ -46,7 +49,7 @@ class AVLTree {
           return root;
         }
 
-        Node* getPreviews() const {
+        Node* getPreviews() {
           Node* root = this;
           Node* next = root->left;
 
@@ -61,11 +64,9 @@ class AVLTree {
         void updateHight() {
           int l = getHight(left);
           int r = getHight(right);
-          if (l < r) {
-            h = r;
-          } else {
-            h = l;
-          }
+
+          h = (l < r) ? r : l;
+
           h += 1;
         }
 
@@ -74,11 +75,6 @@ class AVLTree {
         ~Node () {}
 
         Node& operator=(Node& other) = default;
-
-        static int getHight (Node* n) {
-          if (n == nullptr) { return 0; }
-          return n->h;
-        }
 
         bool operator==(const Node& other) const {
           return value == other.value;
@@ -140,70 +136,63 @@ class AVLTree {
           return leftValue > right.value;
         }
 
-        // friend std::ostream& operator<<(std::ostream& os, const Node& n) {
-        //   return os << n.value;
-        // }
-
         friend std::ostream& operator<<(std::ostream& os, const Node& n) {
-
-          // cout << n.value; // DBG
-
           if (n.left != nullptr) {
-            os << *(n.left) << endl;
+            os << *(n.left);
           }
 
-          for (int i = 0; i < n.h; i++) {
-            os << "   ";
+          for (int i = 1; i < n.h; i++) {
+            os << " ";
           }
-          os << n.value << endl; // DBG
+          os << n.value << endl;
 
           if (n.right != nullptr) {
-            os << *(n.right) << endl;
+            os << *(n.right);
           }
 
           return os;
         }
 
+        // friend std::ostream& operator<<(std::ostream& os, const Node& n) {
+        //   return os << n.value;
+        // }
+        //
         // void inOrder(Callback callback) const {
         //   if (left) { left.inOrder(callback); }
         //   callback(value);
         //   if (right) { right.inOrder(callback); }
         // }
-
+        //
         // string toString () {
         //   string result = "" + value;
         //   return result;
         // }
-
-
+        //
         // string toString() {
         //   string result = "";
-
+        //
         //   if (left != nullptr) {
         //     result += left->toString();
         //   }
-
+        //
         //   for (int i = 0; i < h; i++) {
         //     result += "   ";
         //   }
         //   cout << *this; // DBG
         //   result += "" + value;
-
+        //
         //   if (right != nullptr) {
         //     result += right->toString();
         //   }
-
+        //
         //   return result;
         // }
-
-        // static void
     };
 
     int size;
-
     Node* root;
 
-    void deleteTree(Node* pointer) {
+    static void deleteTree(Node* pointer) {
         if(pointer == nullptr){ return; }
         deleteTree(pointer->left);
         deleteTree(pointer->right);
@@ -211,6 +200,24 @@ class AVLTree {
     }
 
     /**
+      *
+      *      root
+      *       / \
+      *      /   \
+      *     a     b
+      *    / \   / \
+      *   a1 a2 b1 b2
+      *
+      *        a
+      *       / \
+      *      /   \
+      *     a1  root
+      *          / \
+      *         a2  b
+      *            / \
+      *           b1 b2
+      *
+      *
       * @brief Rotate right
       * @details Rotate the root node to the right, and the new root will be the left child.
       *
@@ -222,7 +229,8 @@ class AVLTree {
       root->left = tmp->right;
       tmp->right = root;
 
-      Node::swapHights(tmp, root);
+      root->updateHight();
+      tmp->updateHight();
 
       return tmp;
     }
@@ -239,7 +247,8 @@ class AVLTree {
       root->right = tmp->left;
       tmp->left = root;
 
-      Node::swapHights(tmp, root);
+      root->updateHight();
+      tmp->updateHight();
 
       return tmp;
     }
@@ -257,21 +266,33 @@ class AVLTree {
       // Insert
       if (value < *root) {
         root->left = insert(root->left, value);
-
-        root->updateHight();
-        if (root->balance() > 1) {
-          return rightRotate(root);
-        }
       } else if (*root < value) {
         root->right = insert(root->right, value);
-        root->updateHight();
-        if (root->balance() < -1) {
-          return leftRotate(root);
-        }
-
       } else {
         // We fond the same key
         return nullptr;
+      }
+
+      root->updateHight();
+
+      if (root->balance() > 1) {
+        // if (value < root->left->value) {
+        //   return rightRotate(root);
+        // }
+        if (value > root->left->value) {
+          root->left = leftRotate(root->left);
+        }
+        return rightRotate(root);
+      }
+
+      if (root->balance() < -1 && value < root->right->value) {
+        // if (value < root->right->value) {
+        //   return leftRotate(root);
+        // }
+        if (value > root->right->value) {
+          root->right = rightRotate(root->right);
+        }
+        return leftRotate(root);
       }
 
       return root;
@@ -280,82 +301,41 @@ class AVLTree {
     static Node* remove(Node* root, const V& value) {
       if (root == nullptr) { return nullptr; }
 
+      // Find the node, move it to be leave if needed and delete it
       if (value < *root) {
         root->left = remove(root->left, value);
       } else if (*root < value) {
         root->right = remove(root->right, value);
       } else {
-        // remove
-        if (root->left == nullptr ||
-            root->right == nullptr) {
-
-          Node* tmp = root->left ?
-                      root->left :
-                      root->right;
-
-          // No child case
-          if (tmp == NULL)
-          {
-              tmp = root;
-              root = nullptr;
-          } else {
-            *root = *tmp; // Copy the contents of
-                           // the non-empty child
-          }
-
-          delete tmp;
+        // Delete the node if it is a leave or have only one child
+        if (root->left == nullptr || root->right == nullptr) {
+          Node* child = root->left ? root->left : root->right;
+          delete root;
+          return child;
         } else {
-          // node with two children: Get the inorder
-          // successor (smallest in the right subtree)
+          // Move the node to be a leave
           Node* tmp = root->getNext();
           Node::swap(*root, *tmp);
-
           root->right = remove(root->right, tmp->value);
         }
-
-        // If the tree had only one node
-        // then return
-        if (root == nullptr) { return root; }
-
-        // STEP 2: UPDATE HEIGHT OF THE CURRENT NODE
-        root->updateHight();
-        // root->height = 1 + max(height(root->left),
-        //                       height(root->right));
-
-        // STEP 3: GET THE BALANCE FACTOR OF
-        // THIS NODE (to check whether this
-        // node became unbalanced)
-        // int balance = getBalance(root);
-
-        // If this node becomes unbalanced,
-        // then there are 4 cases
-
-        // Left Left Case
-        if (root->balance() > 1 &&
-          root->left->balance() >= 0) {
-          return rightRotate(root);
-        }
-
-        // Left Right Case
-        if (root->balance() > 1 &&
-          root->left->balance() < 0) {
-          root->left = leftRotate(root->left);
-          return rightRotate(root);
-        }
-
-        // Right Right Case
-        if (root->balance() < -1 &&
-          root->right->balance() <= 0) {
-          return leftRotate(root);
-        }
-
-        // Right Left Case
-        if (root->balance() < -1 &&
-          root->right->balance() > 0) {
-          root->right = rightRotate(root->right);
-          return leftRotate(root);
-        }
       }
+
+      root->updateHight();
+
+      if (root->balance() > 1) { // Left Case
+        if (root->left->balance() < 0) { // Left Right Case
+          root->left = leftRotate(root->right);
+        }
+        return rightRotate(root);
+      }
+
+      if (root->balance() < -1) { // Right Case
+        if (root->right->balance() > 0) { // Right Left Case
+          root->right = rightRotate(root->right);
+        }
+        return leftRotate(root);
+      }
+
       return root;
     }
 
@@ -387,27 +367,16 @@ class AVLTree {
       if (root != nullptr) { size++; }
     }
 
-    // void insert (const V& value) {
-    //   insert(new Node(value));
-    // }
-
     void remove (const V& value) {
       if (root == nullptr) { return; }
       root = remove(root, value);
       // TODO: size--;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const AVLTree* t) {
-      return os << *t;
-    }
-
     friend std::ostream& operator<<(std::ostream& os, const AVLTree& t) {
-      // os << "[";
       if (t.root != nullptr) {
         os << *(t.root);
-        // os << t.root->toString();
       }
-      // return os << "]";
       return os;
     }
 
