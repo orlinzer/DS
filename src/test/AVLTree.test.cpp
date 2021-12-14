@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
   cout << t << endl;
   cout << t2 << endl;
 
+
   AVLTree<int> t3(t, t2);
   cout << t3 << endl;
 

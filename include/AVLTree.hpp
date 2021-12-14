@@ -71,6 +71,8 @@ class AVLTree {
           h += 1;
         }
 
+        Node () : h(1), left(nullptr), right(nullptr), value() {}
+
         Node (const V& value) : h(1), left(nullptr), right(nullptr), value(value) {}
 
         Node (const Node& other) : h(1), left(nullptr), right(nullptr), value(other.value) {}
@@ -155,41 +157,6 @@ class AVLTree {
 
           return os;
         }
-
-        // friend std::ostream& operator<<(std::ostream& os, const Node& n) {
-        //   return os << n.value;
-        // }
-        //
-        // void inOrder(Callback callback) const {
-        //   if (left) { left.inOrder(callback); }
-        //   callback(value);
-        //   if (right) { right.inOrder(callback); }
-        // }
-        //
-        // string toString () {
-        //   string result = "" + value;
-        //   return result;
-        // }
-        //
-        // string toString() {
-        //   string result = "";
-        //
-        //   if (left != nullptr) {
-        //     result += left->toString();
-        //   }
-        //
-        //   for (int i = 0; i < h; i++) {
-        //     result += "   ";
-        //   }
-        //   cout << *this; // DBG
-        //   result += "" + value;
-        //
-        //   if (right != nullptr) {
-        //     result += right->toString();
-        //   }
-        //
-        //   return result;
-        // }
     };
 
     int size;
@@ -274,7 +241,6 @@ class AVLTree {
       return result;
     }
 
-
     /**
       * @brief
       * @details description
@@ -297,15 +263,15 @@ class AVLTree {
 
       root->updateHight();
 
-      if (root->balance() > 1) {
-        if (value > root->left->value) {
+      if (root->balance() > 1) { // Left Case
+        if (root->left->balance() < 0) { // Left Right Case
           root->left = leftRotate(root->left);
         }
         return rightRotate(root);
       }
 
-      if (root->balance() < -1) {
-        if (value > root->right->value) {
+      if (root->balance() < -1) { // Right Case
+        if (root->right->balance() < 0) { // Right Left Case
           root->right = rightRotate(root->right);
         }
         return leftRotate(root);
@@ -383,25 +349,73 @@ class AVLTree {
       return result;
     }
 
-    static Node* combine (const AVLTree& a, const AVLTree& b, Node* result) {
-      if ((a.root == nullptr && b.root == nullptr) || result == nullptr) { return nullptr; }
+    static Node* removeMin (Node** n) { // O(log(|n|))
+      if (n == nullptr || *n == nullptr) { return nullptr; }
+
+      if ((*n)->left != nullptr) {
+        return removeMin(&((*n)->left));
+      }
+
+      Node* result = *n;
+      *n = (*n)->left;
+
+      return result;
+    }
+
+    // XXX
+    static Node* removeMin (Node** a, Node** b) { // O(log(|a|) + log(|b|))
+      if (a == nullptr || b == nullptr) { return nullptr; }
+
+      cout << "*"; // DBG
+
+      Node* result;
+      if (*a == nullptr) {
+        if (*b == nullptr) { return nullptr; }
+        return removeMin(b);
+        // return nullptr; // DBG
+      }
+      if (*b == nullptr) {
+        return removeMin(a);
+        // return nullptr; // DBG
+      }
+
+      if ((*a)->left != nullptr) {
+        // return removeMin(&((*a)->left), b);
+        cout << ((*a)->left);
+        return nullptr; // DBG
+      }
+      if ((*b)->left != nullptr) {
+        // return removeMin(a, &((*b)->left));
+        return nullptr; // DBG
+      }
+
+      // XXX
+      if (**a < **b) {
+        result = *a;
+        *a = (*a)->right;
+      } else if (**b < **a) {
+        result = *b;
+        *b = (*b)->right;
+      } else {
+        result = *b;
+        *b = (*b)->right;
+        delete result;
+        result = *a;
+        *a = (*a)->right;
+      }
+      return result;
+    }
+
+    static void combine (Node** a, Node** b, Node* result) {
+      if (result == nullptr) { return; }
 
       combine(a, b, result->left);
 
-      V* minA = a.min();
-      V* minB = b.min();
+      Node* min = removeMin(a, b);
+      if (min == nullptr) { return; }
 
-      V minVal;
-
-      if ((minA == nullptr) || (minB != nullptr && *minB < *minA)) {
-        minVal = *minB;
-        b.remove(minB);
-      } else {
-        minVal = *minA;
-        a.remove(minA);
-      }
-
-      result->value = minVal;
+      result->value = min->value;
+      delete min;
 
       combine(a, b, result->right);
     }
@@ -415,23 +429,13 @@ class AVLTree {
       root = clone(other.root);
     }
 
-    AVLTree (const AVLTree& a, const AVLTree& b) : size(a.size + b.size) {
-      // root = createEmpy()
-      if (a.root == nullptr) {
-        if (b.root == nullptr) {
-          root = nullptr;
-          return;
-        }
-        root = clone(b.root);
-        return;
-      }
-      if (b.root == nullptr) {
-        root = clone(a.root);
-        return;
-      }
+    AVLTree (AVLTree& a, AVLTree& b) : size(a.size + b.size) {
+      root = createEmpy(size);
 
-      int depth = (int)log2(size);
+      combine(&(a.root), &(a.root), root);
 
+      a.size = 0;
+      b.size = 0;
     }
 
     ~AVLTree () {
